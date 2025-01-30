@@ -1,0 +1,21 @@
+const { DataTypes } = require("sequelize");
+const sequelize = require("./_connection");
+
+const Keyword = sequelize.define(
+  "Keywords",
+  {
+    keyword: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    category: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+  },
+  {
+    timestamps: false, // Disable createdAt and updatedAt
+  }
+);
+
+module.exports = Keyword;
