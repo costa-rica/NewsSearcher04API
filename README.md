@@ -1,5 +1,9 @@
 # News Searcher
 
+#### 0.0.1
+
+Express JS API that makes calls to news sources apis for articles based on criteria
+
 ## urls
 
 ### New API /everything route

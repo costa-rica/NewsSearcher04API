@@ -142,14 +142,6 @@ router.get("/report", async (req, res) => {
   }
 });
 
-// router.get("/report", async (req, res) => {
-//   console.log("in report");
-
-//   const articles = await Article.findAll();
-
-//   res.json({ articles });
-// });
-
 /* test adding to API and Articles tables */
 router.get("/add-news-api", async (req, res) => {
   console.log("in news-searches/test");
