@@ -2,7 +2,7 @@ const { DataTypes } = require("sequelize");
 const sequelize = require("./_connection");
 
 const Keyword = sequelize.define(
-  "Keywords",
+  "Keyword",
   {
     keyword: {
       type: DataTypes.STRING,
@@ -12,10 +12,10 @@ const Keyword = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-  },
-  {
-    timestamps: false, // Disable createdAt and updatedAt
   }
+  // {
+  //   timestamps: false, // Disable createdAt and updatedAt
+  // }
 );
 
 module.exports = Keyword;

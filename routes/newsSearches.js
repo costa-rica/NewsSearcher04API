@@ -5,76 +5,212 @@ const fs = require("fs");
 const path = require("path");
 const NewsApi = require("../models/newsApi");
 const Article = require("../models/article");
-const { saveApiResponseToFile } = require("../modules/utilitiesApiCalls");
+const Keyword = require("../models/keyword");
+const NewsApiKeywordContract = require("../models/newsApiKeywordContracts");
+const {
+  saveApiResponseToFile,
+  checkForDupUrlAuthorTitle,
+} = require("../modules/utilitiesApiCalls");
 const { createObjectCsvWriter } = require("csv-writer");
 
-router.post("/call-news-api-api", async (req, res) => {
-  console.log("In /call-news-api-api route");
-
+// POST news-searches/request-gnews
+router.post("/request-gnews", async (req, res) => {
   try {
-    const { keyword } = req.body;
-    const pageSize = 100;
-    const fromDate = "2025-01-19";
-    const toDate = "2025-01-29";
+    const { startDate, endDate, keywordId, max } = req.body;
 
-    // Fetch API configuration from database
-    const newsApiRecord = await NewsApi.findOne({
-      where: { apiName: "NewsAPI" },
-    });
-
-    if (!newsApiRecord) {
-      return res.status(404).json({ error: "NewsAPI record not found in DB" });
+    if (!startDate || !endDate || !keywordId || !max) {
+      return res.status(400).json({
+        result: false,
+        message:
+          "Missing required fields: startDate, endDate, keywordId, or max",
+      });
     }
 
-    // Construct the NewsAPI endpoint URL
-    const urlNewsApiEverything = `${
+    // 1. Get the keyword from DB
+    const keywordObj = await Keyword.findByPk(keywordId);
+    if (!keywordObj) {
+      return res
+        .status(404)
+        .json({ result: false, message: "Keyword not found" });
+    }
+    // 2. Get the GNews API base url from the NewsApi table
+    const newsApiRecord = await NewsApi.findByPk(2); // GNews is id = 2
+    if (!newsApiRecord) {
+      return res
+        .status(404)
+        .json({ result: false, message: "GNews API not found" });
+    }
+
+    const keyword = keywordObj.keyword;
+    const token = newsApiRecord.apiKey;
+
+    // 2. Construct the GNews API URL
+    // const urlGnews = `https://gnews.io/api/v4/search?q=${encodeURIComponent(
+    const urlGnews = `${newsApiRecord.urlBase}search?q=${encodeURIComponent(
+      keyword
+    )}&from=${startDate}&to=${endDate}&max=${max}&lang=en&token=${token}`;
+
+    const response = await fetch(urlGnews);
+    const data = await response.json();
+
+    // 3. Save raw API response to file
+    await saveApiResponseToFile("gnews", data);
+
+    if (!data.articles || !Array.isArray(data.articles)) {
+      return res
+        .status(500)
+        .json({ result: false, message: "Invalid response from GNews" });
+    }
+    const filteredArticles = await checkForDupUrlAuthorTitle(data.articles);
+    // 4. Save each article to the Article table
+    let articleCount = 0;
+    for (const item of filteredArticles) {
+      try {
+        await Article.create({
+          sourceName: item.source?.name || null,
+          sourceId: item.source?.url || null,
+          author: null, // Not provided by GNews
+          title: item.title,
+          description: item.description,
+          url: item.url,
+          urlToImage: item.image,
+          publishedDate: item.publishedAt,
+          content: item.content,
+          apiSource: 2, // GNews = id 2
+          keywordSearch: keyword,
+        });
+        articleCount++;
+      } catch (err) {
+        console.warn("Skipping article due to DB error:", err.message);
+      }
+    }
+
+    // 5. Add a tracking row in NewsApiKeywordContract
+    await NewsApiKeywordContract.create({
+      keywordId,
+      newsApiId: 2, // GNews
+      requestDate: new Date().toISOString().slice(0, 10), // today
+      requestCount: articleCount,
+      startDateOfRequest: startDate,
+      endDateOfRequest: endDate,
+    });
+
+    res.json({
+      result: true,
+      message: `Imported ${articleCount} articles from GNews.`,
+    });
+  } catch (error) {
+    console.error("Error in /request-gnews:", error);
+    res.status(500).json({
+      result: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
+// POST news-searches/request-news-api
+router.post("/request-news-api", async (req, res) => {
+  try {
+    const { startDate, endDate, keywordId, max } = req.body;
+
+    if (!startDate || !endDate || !keywordId || !max) {
+      return res.status(400).json({
+        result: false,
+        message:
+          "Missing required fields: startDate, endDate, keywordId, or max",
+      });
+    }
+
+    // 1. Get the keyword from DB
+    const keywordObj = await Keyword.findByPk(keywordId);
+    if (!keywordObj) {
+      return res
+        .status(404)
+        .json({ result: false, message: "Keyword not found" });
+    }
+
+    // 2. Get the NewsAPI config from the NewsApi table (id = 1)
+    const newsApiRecord = await NewsApi.findByPk(1);
+    if (!newsApiRecord) {
+      return res
+        .status(404)
+        .json({ result: false, message: "NewsAPI config not found" });
+    }
+
+    const keyword = keywordObj.keyword;
+    const token = newsApiRecord.apiKey;
+
+    // 3. Construct the NewsAPI URL
+    const urlNewsApi = `${
       newsApiRecord.urlBase
     }everything?q=${encodeURIComponent(
       keyword
-    )}&from=${fromDate}&to=${toDate}&pageSize=${pageSize}&language=en&apiKey=${
-      newsApiRecord.apiKey
-    }`;
+    )}&from=${startDate}&to=${endDate}&pageSize=${max}&language=en&apiKey=${token}`;
 
-    console.log(`Fetching data from: ${urlNewsApiEverything}`);
-
-    // Make the API call
-    const response = await fetch(urlNewsApiEverything);
+    const response = await fetch(urlNewsApi);
     const data = await response.json();
 
-    if (data.status !== "ok" || !data.articles) {
-      console.error("NewsAPI returned an error:", data);
-      return res
-        .status(500)
-        .json({ error: "Failed to fetch news articles", details: data });
+    // 4. Save raw API response to file
+    await saveApiResponseToFile("newsapi", data);
+
+    if (!data.articles || !Array.isArray(data.articles)) {
+      return res.status(500).json({
+        result: false,
+        message: "Invalid response from NewsAPI",
+        details: data,
+      });
     }
 
-    // Save the response data to a JSON file
-    saveApiResponseToFile(data);
-    // Map and save articles to the database
-    const articlesToInsert = data.articles.map((article) => ({
-      sourceName: article.source?.name || "Unknown Source",
-      sourceId: article.source?.id || null,
-      author: article.author || "Unknown Author",
-      title: article.title,
-      description: article.description || null,
-      url: article.url,
-      urlToImage: article.urlToImage || null,
-      publishedDate: article.publishedAt || null,
-      content: article.content || null,
-      apiSource: newsApiRecord.id, // Link to NewsApi
-      keywordSearch: keyword,
-    }));
+    // 5. Filter out existing articles
+    const filteredArticles = await checkForDupUrlAuthorTitle(data.articles);
 
-    // Insert into database
-    await Article.bulkCreate(articlesToInsert);
+    // 6. Save each new article to the DB
+    let articleCount = 0;
+    for (const item of filteredArticles) {
+      try {
+        await Article.create({
+          sourceName: item.source?.name || "Unknown Source",
+          sourceId: item.source?.id || null,
+          author: item.author || "Unknown Author",
+          title: item.title,
+          description: item.description || null,
+          url: item.url,
+          urlToImage: item.urlToImage || null,
+          publishedDate: item.publishedAt || null,
+          content: item.content || null,
+          apiSource: newsApiRecord.id,
+          keywordSearch: keyword,
+        });
+        articleCount++;
+      } catch (err) {
+        console.warn("Skipping article due to DB error:", err.message);
+      }
+    }
+
+    // 7. Add tracking to NewsApiKeywordContract
+    await NewsApiKeywordContract.create({
+      keywordId,
+      newsApiId: newsApiRecord.id,
+      requestDate: new Date().toISOString().slice(0, 10),
+      requestCount: articleCount,
+      startDateOfRequest: startDate,
+      endDateOfRequest: endDate,
+    });
 
     res.status(201).json({
-      message: "News articles fetched and saved successfully!",
-      insertedArticles: articlesToInsert,
+      result: true,
+      message: `Imported ${articleCount} articles from NewsAPI.`,
     });
   } catch (error) {
     console.error("Error in /call-news-api-api:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        result: false,
+        message: "Internal server error",
+        error: error.message,
+      });
   }
 });
 
@@ -146,12 +282,84 @@ router.get("/report", async (req, res) => {
 router.get("/add-news-api", async (req, res) => {
   console.log("in news-searches/test");
   const api = await NewsApi.create({
-    apiName: "NewsAPI",
-    urlBase: "https://newsapi.org/v2/",
-    apiKey: process.env.API_KEY_NEWS_API,
+    apiName: "GNews",
+    urlBase: "https://gnews.io/api/v1/",
+    apiKey: process.env.API_KEY_GNEWS,
   });
 
   res.json({ result: true, api });
 });
 
 module.exports = router;
+
+// --- OBE ---
+// router.post("/call-news-api-api", async (req, res) => {
+//   console.log("In /call-news-api-api route");
+
+//   try {
+//     const { keyword } = req.body;
+//     const pageSize = 100;
+//     const fromDate = "2025-03-01";
+//     const toDate = "2025-03-20";
+
+//     // Fetch API configuration from database
+//     const newsApiRecord = await NewsApi.findOne({
+//       where: { apiName: "NewsAPI" },
+//     });
+
+//     if (!newsApiRecord) {
+//       return res.status(404).json({ error: "NewsAPI record not found in DB" });
+//     }
+
+//     // Construct the NewsAPI endpoint URL
+//     const urlNewsApiEverything = `${
+//       newsApiRecord.urlBase
+//     }everything?q=${encodeURIComponent(
+//       keyword
+//     )}&from=${fromDate}&to=${toDate}&pageSize=${pageSize}&language=en&apiKey=${
+//       newsApiRecord.apiKey
+//     }`;
+
+//     console.log(`Fetching data from: ${urlNewsApiEverything}`);
+
+//     // Make the API call
+//     const response = await fetch(urlNewsApiEverything);
+//     const data = await response.json();
+
+//     if (data.status !== "ok" || !data.articles) {
+//       console.error("NewsAPI returned an error:", data);
+//       return res
+//         .status(500)
+//         .json({ error: "Failed to fetch news articles", details: data });
+//     }
+
+//     // Save the response data to a JSON file
+//     await saveApiResponseToFile("newsapi", data);
+
+//     // Map and save articles to the database
+//     const articlesToInsert = data.articles.map((article) => ({
+//       sourceName: article.source?.name || "Unknown Source",
+//       sourceId: article.source?.id || null,
+//       author: article.author || "Unknown Author",
+//       title: article.title,
+//       description: article.description || null,
+//       url: article.url,
+//       urlToImage: article.urlToImage || null,
+//       publishedDate: article.publishedAt || null,
+//       content: article.content || null,
+//       apiSource: newsApiRecord.id, // Link to NewsApi
+//       keywordSearch: keyword,
+//     }));
+
+//     // Insert into database
+//     await Article.bulkCreate(articlesToInsert);
+
+//     res.status(201).json({
+//       message: "News articles fetched and saved successfully!",
+//       insertedArticles: articlesToInsert,
+//     });
+//   } catch (error) {
+//     console.error("Error in /call-news-api-api:", error);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });

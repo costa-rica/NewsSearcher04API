@@ -56,10 +56,13 @@ const Article = sequelize.define(
     keywordSearch: {
       type: DataTypes.TEXT,
     },
-  },
-  {
-    timestamps: false,
+    contentWebscraped: {
+      type: DataTypes.TEXT,
+    },
   }
+  // {
+  //   timestamps: false,
+  // }
 );
 
 // Define the relationship

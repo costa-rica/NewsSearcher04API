@@ -21,10 +21,10 @@ const NewsApi = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-  },
-  {
-    timestamps: false, // No createdAt or updatedAt fields
   }
+  // {
+  //   timestamps: false, // No createdAt or updatedAt fields
+  // }
 );
 
 module.exports = NewsApi;

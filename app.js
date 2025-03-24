@@ -1,5 +1,6 @@
 require("dotenv").config();
 const sequelize = require("./models/_connection");
+require("./models/_associations");
 var express = require("express");
 var path = require("path");
 var cookieParser = require("cookie-parser");
@@ -30,7 +31,7 @@ app.use("/admin-db", adminDbRouter);
 sequelize
   .sync()
   .then(() => {
-    console.log("Database connected & synced");
+    console.log("✅ Database connected & synced");
     // app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
   .catch((error) => console.error("Error syncing database:", error));

@@ -1,14 +1,18 @@
 const fs = require("fs");
 const path = require("path");
+const { promisify } = require("util");
+const mkdirAsync = promisify(fs.mkdir);
+const Article = require("../models/article");
 
-/**
- * Saves API response data to a JSON file in the project resources folder.
- * @param {Object} data - The API response data to be saved.
- */
-const saveApiResponseToFile = (data) => {
+const saveApiResponseToFile = async (apiSourceDir, data) => {
   try {
     // Ensure PATH_PROJECT_RESOURCES is set
-    const resourcesPath = process.env.PATH_PROJECT_RESOURCES;
+    const resourcesPath = path.join(
+      process.env.PATH_PROJECT_RESOURCES,
+      "api_requests_to_news_orgs",
+      apiSourceDir
+    );
+    await mkdirAsync(resourcesPath, { recursive: true });
     if (!resourcesPath) {
       console.error("Error: PATH_PROJECT_RESOURCES is not set.");
       return;
@@ -33,4 +37,29 @@ const saveApiResponseToFile = (data) => {
   }
 };
 
-module.exports = { saveApiResponseToFile };
+async function checkForDupUrlAuthorTitle(articlesArray) {
+  console.log("Checking for duplicate articles...");
+  let dupCount = 0;
+  const filteredArticles = [];
+
+  for (const article of articlesArray) {
+    const exists = await Article.findOne({
+      where: {
+        url: article.url,
+        author: article.author || null,
+        title: article.title,
+      },
+    });
+
+    if (!exists) {
+      filteredArticles.push(article);
+    } else {
+      dupCount++;
+    }
+  }
+
+  console.log(`Filtered out ${dupCount} duplicate articles.`);
+  return filteredArticles;
+}
+
+module.exports = { saveApiResponseToFile, checkForDupUrlAuthorTitle };
