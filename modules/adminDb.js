@@ -14,6 +14,7 @@ const {
   Keyword,
   NewsArticleAggregatorSource,
   NewsApiRequest,
+  RssLinkRequest,
 } = require("newsshareddb");
 const { promisify } = require("util");
 const archiver = require("archiver");
@@ -26,6 +27,7 @@ const models = {
   Keyword,
   NewsArticleAggregatorSource,
   NewsApiRequest,
+  RssLinkRequest,
 };
 
 async function readAndAppendDbTables(backupFolderPath) {

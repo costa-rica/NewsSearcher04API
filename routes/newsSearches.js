@@ -1,12 +1,8 @@
 var express = require("express");
 var router = express.Router();
-// const os = require("os");
 const fs = require("fs");
 const path = require("path");
-// const Article = require("../models/article");
-// const Keyword = require("../models/keyword");
-// const NewsArticleAggregatorSource = require("../models/newsArticleAggregatorSource"); // former( NewsApi)
-// const NewsApiRequest = require("../models/newsApiRequest"); // (former NewsApiKeywordContract)
+
 const {
   Article,
   Keyword,
@@ -282,16 +278,31 @@ router.get("/report", async (req, res) => {
   }
 });
 
-/* test adding to API and Articles tables */
-router.get("/add-news-api", async (req, res) => {
-  console.log("in news-searches/test");
-  const api = await NewsArticleAggregatorSource.create({
-    apiName: "GNews",
-    urlBase: "https://gnews.io/api/v1/",
-    apiKey: process.env.API_KEY_GNEWS,
+// POST /news-searches/add-news-aggregator-source
+router.post("/add-news-aggregator-source", async (req, res) => {
+  console.log("in POST /news-searches/add-news-aggregator-source");
+  const { nameOfOrg, url, apiKey, state, isApi, isRss } = req.body;
+  const newApi = await NewsArticleAggregatorSource.create({
+    nameOfOrg,
+    url,
+    apiKey,
+    state,
+    isApi: isApi === "true",
+    isRss: isRss === "true",
   });
-
-  res.json({ result: true, api });
+  res.json({ result: true, newApi });
 });
+
+// /* test adding to API and Articles tables */
+// router.get("/add-news-api", async (req, res) => {
+//   console.log("in news-searches/test");
+//   const api = await NewsArticleAggregatorSource.create({
+//     apiName: "GNews",
+//     urlBase: "https://gnews.io/api/v1/",
+//     apiKey: process.env.API_KEY_GNEWS,
+//   });
+
+//   res.json({ result: true, api });
+// });
 
 module.exports = router;
