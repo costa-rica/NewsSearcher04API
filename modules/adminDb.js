@@ -1,13 +1,20 @@
 const csvParser = require("csv-parser");
 const fs = require("fs");
 const path = require("path");
-const sequelize = require("../models/_connection"); // Import Sequelize instance
+// const sequelize = require("../models/_connection"); // Import Sequelize instance
 
 // Import models directly
-const Article = require("../models/article");
-const Keyword = require("../models/keyword");
-const NewsArticleAggregatorSource = require("../models/newsArticleAggregatorSource"); // former( NewsApi)
-const NewsApiRequest = require("../models/newsApiRequest"); // (former NewsApiKeywordContract)
+// const Article = require("../models/article");
+// const Keyword = require("../models/keyword");
+// const NewsArticleAggregatorSource = require("../models/newsArticleAggregatorSource"); // former( NewsApi)
+// const NewsApiRequest = require("../models/newsApiRequest"); // (former NewsApiKeywordContract)
+const {
+  sequelize,
+  Article,
+  Keyword,
+  NewsArticleAggregatorSource,
+  NewsApiRequest,
+} = require("newsshareddb");
 const { promisify } = require("util");
 const archiver = require("archiver");
 const { Parser } = require("json2csv");

@@ -2,7 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const { promisify } = require("util");
 const mkdirAsync = promisify(fs.mkdir);
-const Article = require("../models/article");
+// const Article = require("../models/article");
+const { Article } = require("newsshareddb");
 
 const saveApiResponseToFile = async (apiSourceDir, data) => {
   try {

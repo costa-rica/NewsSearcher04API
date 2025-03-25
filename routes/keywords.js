@@ -1,5 +1,6 @@
 const express = require("express");
-const Keyword = require("../models/keyword");
+// const Keyword = require("../models/keyword");
+const { Keyword } = require("newsshareddb");
 const fs = require("fs");
 const csv = require("csv-parser");
 const path = require("path");

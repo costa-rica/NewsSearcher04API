@@ -1,6 +1,8 @@
 require("dotenv").config();
-const sequelize = require("./models/_connection");
-require("./models/_associations");
+// const sequelize = require("./models/_connection");
+// require("./models/_associations");
+const { sequelize } = require("newsshareddb");
+
 var express = require("express");
 var path = require("path");
 var cookieParser = require("cookie-parser");

@@ -1,12 +1,18 @@
 var express = require("express");
 var router = express.Router();
-const os = require("os");
+// const os = require("os");
 const fs = require("fs");
 const path = require("path");
-const Article = require("../models/article");
-const Keyword = require("../models/keyword");
-const NewsArticleAggregatorSource = require("../models/newsArticleAggregatorSource"); // former( NewsApi)
-const NewsApiRequest = require("../models/newsApiRequest"); // (former NewsApiKeywordContract)
+// const Article = require("../models/article");
+// const Keyword = require("../models/keyword");
+// const NewsArticleAggregatorSource = require("../models/newsArticleAggregatorSource"); // former( NewsApi)
+// const NewsApiRequest = require("../models/newsApiRequest"); // (former NewsApiKeywordContract)
+const {
+  Article,
+  Keyword,
+  NewsArticleAggregatorSource,
+  NewsApiRequest,
+} = require("newsshareddb");
 const {
   saveApiResponseToFile,
   checkForDupUrlAuthorTitle,
