@@ -1,23 +1,45 @@
-const NewsApi = require("./newsApi");
 const Keyword = require("./keyword");
-const NewsApiKeywordContract = require("./newsApiKeywordContracts");
+const NewsApiRequest = require("./newsApiRequest"); // const NewsApiKeywordContract
+const NewsArticleAggregatorSource = require("./newsArticleAggregatorSource"); // const NewsApi = require("./newsApi");
+const Article = require("./article");
+const RssLinkRequest = require("./rssLinkRequest");
+
+// One (SchemaA) to Many (SchemaB)
+// hasMany: SchemaA hasMany(SchemaB, {foreignKey: "schemaAId"})
+// belongsTo: SchemaB belongsTo(SchemaA, {foreignKey: "schemaAId"})
 
 // Associations
-
-// NewsApi has many NewsApiKeywordContracts
-NewsApi.hasMany(NewsApiKeywordContract, {
-  foreignKey: "newsApiId",
+NewsArticleAggregatorSource.hasMany(Article, {
+  foreignKey: "newsArticleAggregatorSourceId",
   onDelete: "CASCADE",
 });
-NewsApiKeywordContract.belongsTo(NewsApi, {
-  foreignKey: "newsApiId",
+
+Article.belongsTo(NewsArticleAggregatorSource, {
+  foreignKey: "newsArticleAggregatorSourceId",
 });
 
-// Keyword has many NewsApiKeywordContracts
-Keyword.hasMany(NewsApiKeywordContract, {
+// NewsArticleAggregatorSource (former: NewsApi) has many NewsApiRequest
+NewsArticleAggregatorSource.hasMany(NewsApiRequest, {
+  foreignKey: "newsArticleAggregatorSourceId",
+  onDelete: "CASCADE",
+});
+NewsApiRequest.belongsTo(NewsArticleAggregatorSource, {
+  foreignKey: "newsArticleAggregatorSourceId",
+});
+
+NewsArticleAggregatorSource.hasMany(RssLinkRequest, {
+  foreignKey: "newsArticleAggregatorSourceId",
+  onDelete: "CASCADE",
+});
+RssLinkRequest.belongsTo(NewsArticleAggregatorSource, {
+  foreignKey: "newsArticleAggregatorSourceId",
+});
+
+// Keyword has many NewsApiRequest
+Keyword.hasMany(NewsApiRequest, {
   foreignKey: "keywordId",
   onDelete: "CASCADE",
 });
-NewsApiKeywordContract.belongsTo(Keyword, {
+NewsApiRequest.belongsTo(Keyword, {
   foreignKey: "keywordId",
 });

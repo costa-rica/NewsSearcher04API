@@ -6,9 +6,8 @@ const sequelize = require("../models/_connection"); // Import Sequelize instance
 // Import models directly
 const Article = require("../models/article");
 const Keyword = require("../models/keyword");
-const NewsApi = require("../models/newsApi");
-const NewsApiKeywordContract = require("../models/newsApiKeywordContracts");
-
+const NewsArticleAggregatorSource = require("../models/newsArticleAggregatorSource"); // former( NewsApi)
+const NewsApiRequest = require("../models/newsApiRequest"); // (former NewsApiKeywordContract)
 const { promisify } = require("util");
 const archiver = require("archiver");
 const { Parser } = require("json2csv");
@@ -18,8 +17,8 @@ const writeFileAsync = promisify(fs.writeFile);
 const models = {
   Article,
   Keyword,
-  NewsApi,
-  NewsApiKeywordContract,
+  NewsArticleAggregatorSource,
+  NewsApiRequest,
 };
 
 async function readAndAppendDbTables(backupFolderPath) {
@@ -36,15 +35,11 @@ async function readAndAppendDbTables(backupFolderPath) {
 
     csvFiles.forEach((file) => {
       if (!file.endsWith(".csv")) return; // Skip non-CSV files
+      // console.log(`Processing file: ${file}`);
       appendBatch1.push(file);
     });
 
     console.log(`Append Batch 1 (First): ${appendBatch1}`);
-    // console.log(
-    //   `Append Batch 2 (Second - Contract, Match, Video): ${appendBatch2}`
-    // );
-    // console.log(`Append Batch 3 (Third - Action): ${appendBatch3}`);
-    // console.log(`Append Batch 4 (Last - SyncContract): ${appendBatch4}`);
 
     // Helper function to process CSV files
     async function processCSVFiles(files) {

@@ -1,8 +1,8 @@
 # News Searcher
 
-#### 0.3.0
+#### 0.4.0
 
-Express JS API that makes calls to news sources apis for articles based on criteria
+Express JS API that interfaces with database and can make requests to news sources apis but designed to communicate with micro services for api and rss requests and web scraping.
 
 ## How this works
 

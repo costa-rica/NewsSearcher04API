@@ -2,25 +2,22 @@ var express = require("express");
 var router = express.Router();
 const Article = require("../models/article");
 const Keyword = require("../models/keyword");
-const NewsApi = require("../models/newsApi");
-const NewsApiKeywordContract = require("../models/newsApiKeywordContracts");
 
+const NewsArticleAggregatorSource = require("../models/newsArticleAggregatorSource"); // former( NewsApi)
+const NewsApiRequest = require("../models/newsApiRequest"); // (former NewsApiKeywordContract)
 const models = {
   Article,
   Keyword,
-  NewsApi,
-  NewsApiKeywordContract,
+  NewsArticleAggregatorSource,
+  NewsApiRequest,
 };
 
 const fs = require("fs");
 const path = require("path");
 const { promisify } = require("util");
-// const archiver = require("archiver");
-// const { Parser } = require("json2csv");
+
 // Promisify fs functions
 const mkdirAsync = promisify(fs.mkdir);
-// const writeFileAsync = promisify(fs.writeFile);
-// const { authenticateToken } = require("../middleware/auth");
 
 const {
   readAndAppendDbTables,
